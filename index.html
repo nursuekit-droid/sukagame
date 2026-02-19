@@ -1,65 +1,91 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>SukaGame</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
   <!-- Pi SDK -->
   <script src="https://sdk.minepi.com/pi-sdk.js"></script>
   <script>
-    Pi.init({ version: "2.0" });
+    Pi.init({
+      version: "2.0",
+      sandbox: false // 🔴 اجعلها false إذا كنت في Production
+    });
   </script>
-
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      text-align: center;
-      margin-top: 50px;
-      background-color: #f0f0f0;
-    }
-    button {
-      padding: 12px 24px;
-      font-size: 16px;
-      cursor: pointer;
-      margin-top: 20px;
-      background-color: #4CAF50;
-      color: white;
-      border: none;
-      border-radius: 6px;
-    }
-    button:hover {
-      background-color: #45a049;
-    }
-    #result {
-      margin-top: 20px;
-      font-weight: bold;
-    }
-  </style>
 </head>
 
-<body>
+<body style="text-align:center; font-family: Arial, sans-serif; margin-top:50px;">
+
   <h1>🎮 SukaGame</h1>
-  <p>Pi Network App – Development Mode</p>
+  <p>Pi Network App</p>
 
-  <button onclick="loginWithPi()">Login with Pi</button>
+  <button onclick="loginWithPi()" style="padding:12px 20px; font-size:16px;">
+    Login with Pi
+  </button>
 
-  <div id="result"></div>
+  <br><br>
+
+  <button onclick="pay()" style="padding:12px 20px; font-size:16px;">
+    Pay 0.01 Pi
+  </button>
+
+  <p id="result" style="margin-top:20px;"></p>
 
   <script>
-    function loginWithPi() {
-      Pi.authenticate(
-        ["username"],
-        function (auth) {
-          document.getElementById("result").innerText =
-            "Welcome, " + auth.user.username + "!";
-        },
-        function (error) {
-          document.getElementById("result").innerText =
-            "Login failed: " + error;
-        }
-      );
+
+    let currentUser;
+
+    async function loginWithPi() {
+      try {
+        const auth = await Pi.authenticate(
+          ['username', 'payments'],
+          function(payment) {
+            console.log("Incomplete payment found:", payment);
+          }
+        );
+
+        currentUser = auth.user.username;
+        document.getElementById("result").innerText =
+          "Welcome " + currentUser;
+
+      } catch (error) {
+        document.getElementById("result").innerText =
+          "Login failed: " + error;
+      }
     }
+
+    async function pay() {
+      try {
+
+        const payment = await Pi.createPayment({
+          amount: 0.01,
+          memo: "Test Payment - SukaGame",
+          metadata: { productId: "suka_test_001" }
+        }, {
+          onReadyForServerApproval: function(paymentId) {
+            console.log("Ready for approval:", paymentId);
+          },
+
+          onReadyForServerCompletion: function(paymentId, txid) {
+            console.log("Ready for completion:", paymentId, txid);
+          },
+
+          onCancel: function(paymentId) {
+            console.log("Payment cancelled");
+          },
+
+          onError: function(error) {
+            console.error(error);
+          }
+        });
+
+      } catch (error) {
+        console.error(error);
+      }
+    }
+
   </script>
+
 </body>
 </html>
